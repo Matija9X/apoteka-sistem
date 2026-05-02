@@ -6,9 +6,10 @@ function ReceptiPage() {
   const [doktori, setDoktori] = useState([]);
   const [pacijenti, setPacijenti] = useState([]);
   const [lekovi, setLekovi] = useState([]);
+  const [editId, setEditId] = useState(null);
   const navigate = useNavigate();
 
-  const [noviRecept, setNoviRecept] = useState({
+  const praznaForma = {
     datumIzdavanja: "",
     napomena: "",
     istekao: false,
@@ -18,7 +19,9 @@ function ReceptiPage() {
     doziranje: "",
     napomenaStavke: "",
     lekId: "",
-  });
+  };
+
+  const [noviRecept, setNoviRecept] = useState(praznaForma);
 
   const ucitajSve = () => {
     fetch("http://localhost:8080/api/recepti")
@@ -54,7 +57,31 @@ function ReceptiPage() {
     });
   };
 
-  const dodajRecept = async (e) => {
+  const resetForme = () => {
+    setNoviRecept(praznaForma);
+    setEditId(null);
+  };
+
+  const popuniFormuZaIzmenu = (recept) => {
+    const prvaStavka = recept.stavke?.[0];
+
+    setEditId(recept.idRecept);
+    setNoviRecept({
+      datumIzdavanja: recept.datumIzdavanja || "",
+      napomena: recept.napomena || "",
+      istekao: recept.istekao || false,
+      doktorId: recept.doktor?.idDoktor?.toString() || "",
+      pacijentId: recept.pacijent?.idPacijent?.toString() || "",
+      kolicinaPakovanja: prvaStavka?.kolicinaPakovanja?.toString() || "",
+      doziranje: prvaStavka?.doziranje || "",
+      napomenaStavke: prvaStavka?.napomena || "",
+      lekId: prvaStavka?.lek?.idLek?.toString() || "",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const sacuvajRecept = async (e) => {
     e.preventDefault();
 
     if (
@@ -92,8 +119,14 @@ function ReceptiPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:8080/api/recepti", {
-        method: "POST",
+      const url = editId
+        ? `http://localhost:8080/api/recepti/${editId}`
+        : "http://localhost:8080/api/recepti";
+
+      const method = editId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -101,24 +134,14 @@ function ReceptiPage() {
       });
 
       if (response.ok) {
-        alert("Recept je uspešno dodat.");
-        setNoviRecept({
-          datumIzdavanja: "",
-          napomena: "",
-          istekao: false,
-          doktorId: "",
-          pacijentId: "",
-          kolicinaPakovanja: "",
-          doziranje: "",
-          napomenaStavke: "",
-          lekId: "",
-        });
+        alert(editId ? "Recept je uspešno izmenjen." : "Recept je uspešno dodat.");
+        resetForme();
         ucitajSve();
       } else {
-        alert("Dodavanje recepta nije uspelo.");
+        alert(editId ? "Izmena recepta nije uspela." : "Dodavanje recepta nije uspelo.");
       }
     } catch (error) {
-      console.error("Greška pri dodavanju recepta:", error);
+      console.error("Greška pri čuvanju recepta:", error);
       alert("Greška pri povezivanju sa backendom.");
     }
   };
@@ -151,7 +174,7 @@ function ReceptiPage() {
         <div>
           <h1>Evidencija recepata</h1>
           <p className="page-subtitle">
-            Kreiranje, pregled i brisanje recepata.
+            Kreiranje, pregled, izmena i brisanje recepata.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -160,9 +183,11 @@ function ReceptiPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "30px" }}>
-        <h2 className="form-section-title">Dodaj novi recept</h2>
+        <h2 className="form-section-title">
+          {editId ? "Izmena recepta" : "Dodaj novi recept"}
+        </h2>
 
-        <form onSubmit={dodajRecept}>
+        <form onSubmit={sacuvajRecept}>
           <div className="form-grid">
             <input
               type="date"
@@ -260,7 +285,19 @@ function ReceptiPage() {
           </div>
 
           <div className="top-actions" style={{ marginTop: "15px" }}>
-            <button type="submit">Dodaj recept</button>
+            <button type="submit">
+              {editId ? "Sačuvaj izmene" : "Dodaj recept"}
+            </button>
+
+            {editId && (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetForme}
+              >
+                Otkaži izmenu
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -296,6 +333,12 @@ function ReceptiPage() {
                   <td>{recept.stavke?.length || 0}</td>
                   <td>
                     <div className="actions">
+                      <button
+                        className="secondary-btn"
+                        onClick={() => popuniFormuZaIzmenu(recept)}
+                      >
+                        Izmeni
+                      </button>
                       <button
                         className="danger-btn"
                         onClick={() => obrisiRecept(recept.idRecept)}

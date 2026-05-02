@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 function LekoviPage() {
   const [lekovi, setLekovi] = useState([]);
+  const [editId, setEditId] = useState(null);
   const navigate = useNavigate();
 
-  const [noviLek, setNoviLek] = useState({
+  const praznaForma = {
     naziv: "",
     jkl: "",
     inn: "",
@@ -19,7 +20,9 @@ function LekoviPage() {
     minDoza: "",
     maxDoza: "",
     potrebanRecept: false,
-  });
+  };
+
+  const [noviLek, setNoviLek] = useState(praznaForma);
 
   const ucitajLekove = () => {
     fetch("http://localhost:8080/api/lekovi")
@@ -62,7 +65,32 @@ function LekoviPage() {
     });
   };
 
-  const dodajLek = async (e) => {
+  const resetForme = () => {
+    setNoviLek(praznaForma);
+    setEditId(null);
+  };
+
+  const popuniFormuZaIzmenu = (lek) => {
+    setEditId(lek.idLek);
+    setNoviLek({
+      naziv: lek.naziv || "",
+      jkl: lek.jkl || "",
+      inn: lek.inn || "",
+      farmaceutskiOblik: lek.farmaceutskiOblik || "",
+      doza: lek.doza || "",
+      datumIsteka: lek.datumIsteka || "",
+      proizvodjac: lek.proizvodjac || "",
+      cena: lek.cena ?? "",
+      sporednaDejstva: lek.sporednaDejstva || "",
+      kontraindikacije: lek.kontraindikacije || "",
+      minDoza: lek.minDoza ?? "",
+      maxDoza: lek.maxDoza ?? "",
+      potrebanRecept: lek.potrebanRecept || false,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const sacuvajLek = async (e) => {
     e.preventDefault();
 
     if (!noviLek.naziv || !noviLek.jkl || !noviLek.cena) {
@@ -75,43 +103,37 @@ function LekoviPage() {
       return;
     }
 
+    const body = JSON.stringify({
+      ...noviLek,
+      cena: Number(noviLek.cena),
+      minDoza: Number(noviLek.minDoza || 0),
+      maxDoza: Number(noviLek.maxDoza || 0),
+    });
+
     try {
-      const response = await fetch("http://localhost:8080/api/lekovi", {
-        method: "POST",
+      const url = editId
+        ? `http://localhost:8080/api/lekovi/${editId}`
+        : "http://localhost:8080/api/lekovi";
+
+      const method = editId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...noviLek,
-          cena: Number(noviLek.cena),
-          minDoza: Number(noviLek.minDoza || 0),
-          maxDoza: Number(noviLek.maxDoza || 0),
-        }),
+        body,
       });
 
       if (response.ok) {
-        alert("Lek je uspešno dodat.");
-        setNoviLek({
-          naziv: "",
-          jkl: "",
-          inn: "",
-          farmaceutskiOblik: "",
-          doza: "",
-          datumIsteka: "",
-          proizvodjac: "",
-          cena: "",
-          sporednaDejstva: "",
-          kontraindikacije: "",
-          minDoza: "",
-          maxDoza: "",
-          potrebanRecept: false,
-        });
+        alert(editId ? "Lek je uspešno izmenjen." : "Lek je uspešno dodat.");
+        resetForme();
         ucitajLekove();
       } else {
-        alert("Dodavanje leka nije uspelo.");
+        alert(editId ? "Izmena leka nije uspela." : "Dodavanje leka nije uspelo.");
       }
     } catch (error) {
-      console.error("Greška pri dodavanju leka:", error);
+      console.error("Greška pri čuvanju leka:", error);
       alert("Greška pri povezivanju sa backendom.");
     }
   };
@@ -122,7 +144,7 @@ function LekoviPage() {
         <div>
           <h1>Evidencija lekova</h1>
           <p className="page-subtitle">
-            Pregled i upravljanje podacima o lekovima.
+            Pregled, dodavanje, izmena i brisanje lekova.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -131,9 +153,11 @@ function LekoviPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "30px" }}>
-        <h2 className="form-section-title">Dodaj novi lek</h2>
+        <h2 className="form-section-title">
+          {editId ? "Izmena leka" : "Dodaj novi lek"}
+        </h2>
 
-        <form onSubmit={dodajLek}>
+        <form onSubmit={sacuvajLek}>
           <div className="form-grid">
             <input name="naziv" placeholder="Naziv" value={noviLek.naziv} onChange={handleChange} required />
             <input name="jkl" placeholder="JKL" value={noviLek.jkl} onChange={handleChange} required />
@@ -160,7 +184,19 @@ function LekoviPage() {
           </div>
 
           <div className="top-actions" style={{ marginTop: "15px" }}>
-            <button type="submit">Dodaj lek</button>
+            <button type="submit">
+              {editId ? "Sačuvaj izmene" : "Dodaj lek"}
+            </button>
+
+            {editId && (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetForme}
+              >
+                Otkaži izmenu
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -196,6 +232,12 @@ function LekoviPage() {
                   <td>{lek.cena}</td>
                   <td>
                     <div className="actions">
+                      <button
+                        className="secondary-btn"
+                        onClick={() => popuniFormuZaIzmenu(lek)}
+                      >
+                        Izmeni
+                      </button>
                       <button
                         className="danger-btn"
                         onClick={() => obrisiLek(lek.idLek)}

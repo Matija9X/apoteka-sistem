@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 function PacijentiPage() {
   const [pacijenti, setPacijenti] = useState([]);
+  const [editId, setEditId] = useState(null);
   const navigate = useNavigate();
 
-  const [noviPacijent, setNoviPacijent] = useState({
+  const praznaForma = {
     ime: "",
     prezime: "",
     datumRodjenja: "",
@@ -16,7 +17,9 @@ function PacijentiPage() {
     krvnaGrupa: "",
     stanjeZdravlja: "",
     lbo: "",
-  });
+  };
+
+  const [noviPacijent, setNoviPacijent] = useState(praznaForma);
 
   const ucitajPacijente = () => {
     fetch("http://localhost:8080/api/pacijenti")
@@ -37,7 +40,29 @@ function PacijentiPage() {
     });
   };
 
-  const dodajPacijenta = async (e) => {
+  const resetForme = () => {
+    setNoviPacijent(praznaForma);
+    setEditId(null);
+  };
+
+  const popuniFormuZaIzmenu = (pacijent) => {
+    setEditId(pacijent.idPacijent);
+    setNoviPacijent({
+      ime: pacijent.ime || "",
+      prezime: pacijent.prezime || "",
+      datumRodjenja: pacijent.datumRodjenja || "",
+      brojTelefona: pacijent.brojTelefona || "",
+      adresa: pacijent.adresa || "",
+      email: pacijent.email || "",
+      pol: pacijent.pol || "",
+      krvnaGrupa: pacijent.krvnaGrupa || "",
+      stanjeZdravlja: pacijent.stanjeZdravlja || "",
+      lbo: pacijent.lbo || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const sacuvajPacijenta = async (e) => {
     e.preventDefault();
 
     if (!noviPacijent.ime || !noviPacijent.prezime || !noviPacijent.lbo) {
@@ -46,8 +71,14 @@ function PacijentiPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/pacijenti", {
-        method: "POST",
+      const url = editId
+        ? `http://localhost:8080/api/pacijenti/${editId}`
+        : "http://localhost:8080/api/pacijenti";
+
+      const method = editId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -55,25 +86,14 @@ function PacijentiPage() {
       });
 
       if (response.ok) {
-        alert("Pacijent je uspešno dodat.");
-        setNoviPacijent({
-          ime: "",
-          prezime: "",
-          datumRodjenja: "",
-          brojTelefona: "",
-          adresa: "",
-          email: "",
-          pol: "",
-          krvnaGrupa: "",
-          stanjeZdravlja: "",
-          lbo: "",
-        });
+        alert(editId ? "Pacijent je uspešno izmenjen." : "Pacijent je uspešno dodat.");
+        resetForme();
         ucitajPacijente();
       } else {
-        alert("Dodavanje pacijenta nije uspelo.");
+        alert(editId ? "Izmena pacijenta nije uspela." : "Dodavanje pacijenta nije uspelo.");
       }
     } catch (error) {
-      console.error("Greška pri dodavanju pacijenta:", error);
+      console.error("Greška pri čuvanju pacijenta:", error);
       alert("Greška pri povezivanju sa backendom.");
     }
   };
@@ -106,7 +126,7 @@ function PacijentiPage() {
         <div>
           <h1>Evidencija pacijenata</h1>
           <p className="page-subtitle">
-            Pregled i upravljanje podacima o pacijentima.
+            Pregled, dodavanje, izmena i brisanje pacijenata.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -115,24 +135,91 @@ function PacijentiPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "30px" }}>
-        <h2 className="form-section-title">Dodaj novog pacijenta</h2>
+        <h2 className="form-section-title">
+          {editId ? "Izmena pacijenta" : "Dodaj novog pacijenta"}
+        </h2>
 
-        <form onSubmit={dodajPacijenta}>
+        <form onSubmit={sacuvajPacijenta}>
           <div className="form-grid">
-            <input name="ime" placeholder="Ime" value={noviPacijent.ime} onChange={handleChange} required />
-            <input name="prezime" placeholder="Prezime" value={noviPacijent.prezime} onChange={handleChange} required />
-            <input name="datumRodjenja" type="date" value={noviPacijent.datumRodjenja} onChange={handleChange} />
-            <input name="brojTelefona" placeholder="Broj telefona" value={noviPacijent.brojTelefona} onChange={handleChange} />
-            <input name="adresa" placeholder="Adresa" value={noviPacijent.adresa} onChange={handleChange} />
-            <input name="email" placeholder="Email" value={noviPacijent.email} onChange={handleChange} />
-            <input name="pol" placeholder="Pol" value={noviPacijent.pol} onChange={handleChange} />
-            <input name="krvnaGrupa" placeholder="Krvna grupa" value={noviPacijent.krvnaGrupa} onChange={handleChange} />
-            <input name="stanjeZdravlja" placeholder="Stanje zdravlja" value={noviPacijent.stanjeZdravlja} onChange={handleChange} />
-            <input name="lbo" placeholder="LBO" value={noviPacijent.lbo} onChange={handleChange} required />
+            <input
+              name="ime"
+              placeholder="Ime"
+              value={noviPacijent.ime}
+              onChange={handleChange}
+              required
+            />
+            <input
+              name="prezime"
+              placeholder="Prezime"
+              value={noviPacijent.prezime}
+              onChange={handleChange}
+              required
+            />
+            <input
+              name="datumRodjenja"
+              type="date"
+              value={noviPacijent.datumRodjenja}
+              onChange={handleChange}
+            />
+            <input
+              name="brojTelefona"
+              placeholder="Broj telefona"
+              value={noviPacijent.brojTelefona}
+              onChange={handleChange}
+            />
+            <input
+              name="adresa"
+              placeholder="Adresa"
+              value={noviPacijent.adresa}
+              onChange={handleChange}
+            />
+            <input
+              name="email"
+              placeholder="Email"
+              value={noviPacijent.email}
+              onChange={handleChange}
+            />
+            <input
+              name="pol"
+              placeholder="Pol"
+              value={noviPacijent.pol}
+              onChange={handleChange}
+            />
+            <input
+              name="krvnaGrupa"
+              placeholder="Krvna grupa"
+              value={noviPacijent.krvnaGrupa}
+              onChange={handleChange}
+            />
+            <input
+              name="stanjeZdravlja"
+              placeholder="Stanje zdravlja"
+              value={noviPacijent.stanjeZdravlja}
+              onChange={handleChange}
+            />
+            <input
+              name="lbo"
+              placeholder="LBO"
+              value={noviPacijent.lbo}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="top-actions" style={{ marginTop: "15px" }}>
-            <button type="submit">Dodaj pacijenta</button>
+            <button type="submit">
+              {editId ? "Sačuvaj izmene" : "Dodaj pacijenta"}
+            </button>
+
+            {editId && (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetForme}
+              >
+                Otkaži izmenu
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -162,6 +249,12 @@ function PacijentiPage() {
                   <td>{pacijent.lbo}</td>
                   <td>
                     <div className="actions">
+                      <button
+                        className="secondary-btn"
+                        onClick={() => popuniFormuZaIzmenu(pacijent)}
+                      >
+                        Izmeni
+                      </button>
                       <button
                         className="danger-btn"
                         onClick={() => obrisiPacijenta(pacijent.idPacijent)}

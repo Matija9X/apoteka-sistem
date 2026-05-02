@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 function DoktoriPage() {
   const [doktori, setDoktori] = useState([]);
+  const [editId, setEditId] = useState(null);
   const navigate = useNavigate();
 
-  const [noviDoktor, setNoviDoktor] = useState({
+  const praznaForma = {
     ime: "",
     prezime: "",
     datumZaposlenja: "",
@@ -18,7 +19,9 @@ function DoktoriPage() {
     brojLicence: "",
     specijalizacija: "",
     lozinka: "",
-  });
+  };
+
+  const [noviDoktor, setNoviDoktor] = useState(praznaForma);
 
   const ucitajDoktore = () => {
     fetch("http://localhost:8080/api/doktori")
@@ -39,54 +42,77 @@ function DoktoriPage() {
     });
   };
 
-  const dodajDoktora = async (e) => {
+  const resetForme = () => {
+    setNoviDoktor(praznaForma);
+    setEditId(null);
+  };
+
+  const popuniFormuZaIzmenu = (doktor) => {
+    setEditId(doktor.idDoktor);
+    setNoviDoktor({
+      ime: doktor.ime || "",
+      prezime: doktor.prezime || "",
+      datumZaposlenja: doktor.datumZaposlenja || "",
+      brojTelefona: doktor.brojTelefona || "",
+      email: doktor.email || "",
+      adresa: doktor.adresa || "",
+      plata: doktor.plata ?? "",
+      godineIskustva: doktor.godineIskustva ?? "",
+      sluzbeniBroj: doktor.sluzbeniBroj || "",
+      brojLicence: doktor.brojLicence || "",
+      specijalizacija: doktor.specijalizacija || "",
+      lozinka: "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const sacuvajDoktora = async (e) => {
     e.preventDefault();
 
     if (
       !noviDoktor.ime ||
       !noviDoktor.prezime ||
       !noviDoktor.email ||
-      !noviDoktor.lozinka
+      (!editId && !noviDoktor.lozinka)
     ) {
       alert("Ime, prezime, email i lozinka su obavezni.");
       return;
     }
 
+    const body = {
+      ...noviDoktor,
+      plata: Number(noviDoktor.plata || 0),
+      godineIskustva: Number(noviDoktor.godineIskustva || 0),
+    };
+
+    if (editId && !noviDoktor.lozinka) {
+      delete body.lozinka;
+    }
+
     try {
-      const response = await fetch("http://localhost:8080/api/doktori", {
-        method: "POST",
+      const url = editId
+        ? `http://localhost:8080/api/doktori/${editId}`
+        : "http://localhost:8080/api/doktori";
+
+      const method = editId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...noviDoktor,
-          plata: Number(noviDoktor.plata || 0),
-          godineIskustva: Number(noviDoktor.godineIskustva || 0),
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        alert("Doktor je uspešno dodat.");
-        setNoviDoktor({
-          ime: "",
-          prezime: "",
-          datumZaposlenja: "",
-          brojTelefona: "",
-          email: "",
-          adresa: "",
-          plata: "",
-          godineIskustva: "",
-          sluzbeniBroj: "",
-          brojLicence: "",
-          specijalizacija: "",
-          lozinka: "",
-        });
+        alert(editId ? "Doktor je uspešno izmenjen." : "Doktor je uspešno dodat.");
+        resetForme();
         ucitajDoktore();
       } else {
-        alert("Dodavanje doktora nije uspelo.");
+        alert(editId ? "Izmena doktora nije uspela." : "Dodavanje doktora nije uspelo.");
       }
     } catch (error) {
-      console.error("Greška pri dodavanju doktora:", error);
+      console.error("Greška pri čuvanju doktora:", error);
       alert("Greška pri povezivanju sa backendom.");
     }
   };
@@ -119,7 +145,7 @@ function DoktoriPage() {
         <div>
           <h1>Evidencija doktora</h1>
           <p className="page-subtitle">
-            Pregled i upravljanje podacima o doktorima.
+            Pregled, dodavanje, izmena i brisanje doktora.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -128,9 +154,11 @@ function DoktoriPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "30px" }}>
-        <h2 className="form-section-title">Dodaj novog doktora</h2>
+        <h2 className="form-section-title">
+          {editId ? "Izmena doktora" : "Dodaj novog doktora"}
+        </h2>
 
-        <form onSubmit={dodajDoktora}>
+        <form onSubmit={sacuvajDoktora}>
           <div className="form-grid">
             <input name="ime" placeholder="Ime" value={noviDoktor.ime} onChange={handleChange} required />
             <input name="prezime" placeholder="Prezime" value={noviDoktor.prezime} onChange={handleChange} required />
@@ -143,11 +171,29 @@ function DoktoriPage() {
             <input name="sluzbeniBroj" placeholder="Službeni broj" value={noviDoktor.sluzbeniBroj} onChange={handleChange} />
             <input name="brojLicence" placeholder="Broj licence" value={noviDoktor.brojLicence} onChange={handleChange} />
             <input name="specijalizacija" placeholder="Specijalizacija" value={noviDoktor.specijalizacija} onChange={handleChange} />
-            <input type="password" name="lozinka" placeholder="Lozinka" value={noviDoktor.lozinka} onChange={handleChange} required />
+            <input
+              type="password"
+              name="lozinka"
+              placeholder={editId ? "Nova lozinka (opciono)" : "Lozinka"}
+              value={noviDoktor.lozinka}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="top-actions" style={{ marginTop: "15px" }}>
-            <button type="submit">Dodaj doktora</button>
+            <button type="submit">
+              {editId ? "Sačuvaj izmene" : "Dodaj doktora"}
+            </button>
+
+            {editId && (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetForme}
+              >
+                Otkaži izmenu
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -177,6 +223,12 @@ function DoktoriPage() {
                   <td>{doktor.specijalizacija}</td>
                   <td>
                     <div className="actions">
+                      <button
+                        className="secondary-btn"
+                        onClick={() => popuniFormuZaIzmenu(doktor)}
+                      >
+                        Izmeni
+                      </button>
                       <button
                         className="danger-btn"
                         onClick={() => obrisiDoktora(doktor.idDoktor)}

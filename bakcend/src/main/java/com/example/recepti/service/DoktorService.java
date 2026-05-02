@@ -46,7 +46,9 @@ public class DoktorService {
         postojeciDoktor.setSluzbeniBroj(noviDoktor.getSluzbeniBroj());
         postojeciDoktor.setBrojLicence(noviDoktor.getBrojLicence());
         postojeciDoktor.setSpecijalizacija(noviDoktor.getSpecijalizacija());
-        postojeciDoktor.setLozinka(noviDoktor.getLozinka());
+        if (noviDoktor.getLozinka() != null && !noviDoktor.getLozinka().isBlank()) {
+            postojeciDoktor.setLozinka(noviDoktor.getLozinka());
+        }
 
         return doktorRepository.save(postojeciDoktor);
     }
