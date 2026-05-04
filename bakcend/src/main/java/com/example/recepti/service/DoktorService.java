@@ -6,6 +6,7 @@ import com.example.recepti.repository.DoktorRepository;
 import org.springframework.stereotype.Service;
 import com.example.recepti.dto.LoginDoktorRequest;
 import com.example.recepti.dto.LoginDoktorResponse;
+import com.example.recepti.exception.BadRequestException;
 
 import java.util.List;
 import java.util.Optional;
@@ -67,10 +68,10 @@ public class DoktorService {
 
     public LoginDoktorResponse loginDoktor(LoginDoktorRequest request) {
         Doktor doktor = doktorRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Doktor sa tim email-om ne postoji"));
+                .orElseThrow(() -> new BadRequestException("Pogrešan email ili lozinka."));
 
         if (!doktor.getLozinka().equals(request.getLozinka())) {
-            throw new RuntimeException("Pogrešna lozinka");
+            throw new BadRequestException("Pogrešan email ili lozinka.");
         }
 
         return new LoginDoktorResponse(

@@ -66,6 +66,16 @@ function LoginPage() {
         </div>
 
         <button type="submit">Prijava</button>
+        <div style={{ marginTop: "16px", textAlign: "center" }}>
+  <p>Nemate nalog?</p>
+  <button
+    type="button"
+    className="secondary-btn"
+    onClick={() => navigate("/registracija")}
+  >
+    Registruj se
+  </button>
+</div>
       </form>
     </div>
   );

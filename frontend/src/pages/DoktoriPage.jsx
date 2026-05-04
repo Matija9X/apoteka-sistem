@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 function DoktoriPage() {
   const [doktori, setDoktori] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [pretraga, setPretraga] = useState("");
   const navigate = useNavigate();
 
   const praznaForma = {
@@ -33,6 +34,12 @@ function DoktoriPage() {
   useEffect(() => {
     ucitajDoktore();
   }, []);
+
+  const filtriraniDoktori = doktori.filter((doktor) =>
+    `${doktor.ime} ${doktor.prezime} ${doktor.email} ${doktor.specijalizacija} ${doktor.brojLicence} ${doktor.sluzbeniBroj}`
+      .toLowerCase()
+      .includes(pretraga.toLowerCase())
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -145,7 +152,7 @@ function DoktoriPage() {
         <div>
           <h1>Evidencija doktora</h1>
           <p className="page-subtitle">
-            Pregled, dodavanje, izmena i brisanje doktora.
+            Pregled, dodavanje, izmena, brisanje i pretraga doktora.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -198,8 +205,20 @@ function DoktoriPage() {
         </form>
       </div>
 
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h2 className="form-section-title">Pretraga doktora</h2>
+        <input
+          type="text"
+          placeholder="Pretraži po imenu, prezimenu, email adresi, specijalizaciji, broju licence ili službenom broju"
+          value={pretraga}
+          onChange={(e) => setPretraga(e.target.value)}
+        />
+      </div>
+
       {doktori.length === 0 ? (
         <div className="empty-state">Nema doktora.</div>
+      ) : filtriraniDoktori.length === 0 ? (
+        <div className="empty-state">Nema rezultata pretrage.</div>
       ) : (
         <div className="table-wrapper">
           <table>
@@ -214,7 +233,7 @@ function DoktoriPage() {
               </tr>
             </thead>
             <tbody>
-              {doktori.map((doktor) => (
+              {filtriraniDoktori.map((doktor) => (
                 <tr key={doktor.idDoktor}>
                   <td>{doktor.idDoktor}</td>
                   <td>{doktor.ime}</td>

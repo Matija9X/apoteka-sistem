@@ -7,6 +7,7 @@ function ReceptiPage() {
   const [pacijenti, setPacijenti] = useState([]);
   const [lekovi, setLekovi] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [pretraga, setPretraga] = useState("");
   const navigate = useNavigate();
 
   const praznaForma = {
@@ -48,6 +49,23 @@ function ReceptiPage() {
   useEffect(() => {
     ucitajSve();
   }, []);
+
+  const filtriraniRecepti = recepti.filter((recept) => {
+    const tekstZaPretragu = `
+      ${recept.idRecept}
+      ${recept.datumIzdavanja}
+      ${recept.napomena}
+      ${recept.doktor?.ime}
+      ${recept.doktor?.prezime}
+      ${recept.pacijent?.ime}
+      ${recept.pacijent?.prezime}
+      ${recept.stavke?.[0]?.lek?.naziv}
+      ${recept.stavke?.[0]?.doziranje}
+      ${recept.stavke?.[0]?.napomena}
+    `;
+
+    return tekstZaPretragu.toLowerCase().includes(pretraga.toLowerCase());
+  });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -174,7 +192,7 @@ function ReceptiPage() {
         <div>
           <h1>Evidencija recepata</h1>
           <p className="page-subtitle">
-            Kreiranje, pregled, izmena i brisanje recepata.
+            Kreiranje, pregled, izmena, brisanje i pretraga recepata.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -302,8 +320,20 @@ function ReceptiPage() {
         </form>
       </div>
 
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h2 className="form-section-title">Pretraga recepata</h2>
+        <input
+          type="text"
+          placeholder="Pretraži po ID-u, datumu, doktoru, pacijentu, leku, dozi ili napomeni"
+          value={pretraga}
+          onChange={(e) => setPretraga(e.target.value)}
+        />
+      </div>
+
       {recepti.length === 0 ? (
         <div className="empty-state">Nema recepata.</div>
+      ) : filtriraniRecepti.length === 0 ? (
+        <div className="empty-state">Nema rezultata pretrage.</div>
       ) : (
         <div className="table-wrapper">
           <table>
@@ -314,41 +344,49 @@ function ReceptiPage() {
                 <th>Napomena</th>
                 <th>Doktor</th>
                 <th>Pacijent</th>
+                <th>Lek</th>
+                <th>Doziranje</th>
                 <th>Broj stavki</th>
                 <th>Akcije</th>
               </tr>
             </thead>
             <tbody>
-              {recepti.map((recept) => (
-                <tr key={recept.idRecept}>
-                  <td>{recept.idRecept}</td>
-                  <td>{recept.datumIzdavanja}</td>
-                  <td>{recept.napomena}</td>
-                  <td>
-                    {recept.doktor?.ime} {recept.doktor?.prezime}
-                  </td>
-                  <td>
-                    {recept.pacijent?.ime} {recept.pacijent?.prezime}
-                  </td>
-                  <td>{recept.stavke?.length || 0}</td>
-                  <td>
-                    <div className="actions">
-                      <button
-                        className="secondary-btn"
-                        onClick={() => popuniFormuZaIzmenu(recept)}
-                      >
-                        Izmeni
-                      </button>
-                      <button
-                        className="danger-btn"
-                        onClick={() => obrisiRecept(recept.idRecept)}
-                      >
-                        Obriši
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtriraniRecepti.map((recept) => {
+                const prvaStavka = recept.stavke?.[0];
+
+                return (
+                  <tr key={recept.idRecept}>
+                    <td>{recept.idRecept}</td>
+                    <td>{recept.datumIzdavanja}</td>
+                    <td>{recept.napomena}</td>
+                    <td>
+                      {recept.doktor?.ime} {recept.doktor?.prezime}
+                    </td>
+                    <td>
+                      {recept.pacijent?.ime} {recept.pacijent?.prezime}
+                    </td>
+                    <td>{prvaStavka?.lek?.naziv}</td>
+                    <td>{prvaStavka?.doziranje}</td>
+                    <td>{recept.stavke?.length || 0}</td>
+                    <td>
+                      <div className="actions">
+                        <button
+                          className="secondary-btn"
+                          onClick={() => popuniFormuZaIzmenu(recept)}
+                        >
+                          Izmeni
+                        </button>
+                        <button
+                          className="danger-btn"
+                          onClick={() => obrisiRecept(recept.idRecept)}
+                        >
+                          Obriši
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

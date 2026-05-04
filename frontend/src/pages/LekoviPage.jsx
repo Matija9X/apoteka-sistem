@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 function LekoviPage() {
   const [lekovi, setLekovi] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [pretraga, setPretraga] = useState("");
   const navigate = useNavigate();
 
   const praznaForma = {
@@ -34,6 +35,12 @@ function LekoviPage() {
   useEffect(() => {
     ucitajLekove();
   }, []);
+
+  const filtriraniLekovi = lekovi.filter((lek) =>
+    `${lek.naziv} ${lek.jkl} ${lek.inn} ${lek.farmaceutskiOblik} ${lek.doza} ${lek.proizvodjac}`
+      .toLowerCase()
+      .includes(pretraga.toLowerCase())
+  );
 
   const obrisiLek = async (id) => {
     if (!window.confirm("Da li si siguran da želiš brisanje leka?")) {
@@ -144,7 +151,7 @@ function LekoviPage() {
         <div>
           <h1>Evidencija lekova</h1>
           <p className="page-subtitle">
-            Pregled, dodavanje, izmena i brisanje lekova.
+            Pregled, dodavanje, izmena, brisanje i pretraga lekova.
           </p>
         </div>
         <button className="secondary-btn" onClick={() => navigate("/dashboard")}>
@@ -201,8 +208,20 @@ function LekoviPage() {
         </form>
       </div>
 
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h2 className="form-section-title">Pretraga lekova</h2>
+        <input
+          type="text"
+          placeholder="Pretraži po nazivu, JKL-u, INN-u, obliku, dozi ili proizvođaču"
+          value={pretraga}
+          onChange={(e) => setPretraga(e.target.value)}
+        />
+      </div>
+
       {lekovi.length === 0 ? (
         <div className="empty-state">Nema lekova.</div>
+      ) : filtriraniLekovi.length === 0 ? (
+        <div className="empty-state">Nema rezultata pretrage.</div>
       ) : (
         <div className="table-wrapper">
           <table>
@@ -220,7 +239,7 @@ function LekoviPage() {
               </tr>
             </thead>
             <tbody>
-              {lekovi.map((lek) => (
+              {filtriraniLekovi.map((lek) => (
                 <tr key={lek.idLek}>
                   <td>{lek.idLek}</td>
                   <td>{lek.naziv}</td>
